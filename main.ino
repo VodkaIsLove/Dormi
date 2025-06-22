@@ -70,7 +70,6 @@ float getCurrentTemperature() {
   return NAN;
 }
 
-
 // Timer-Funktionen
 /**
  * Startet den 1-Stunden-Timer.
@@ -79,7 +78,37 @@ void startTimer() {
   timeClient.update();
   timerStartEpoch = timeClient.getEpochTime();
   timerRunning = true;
+  //
+  long sollZeit = timeClient.getEpochTime();
+  int ROT = 255;
+  int GRUEN = 147;
+  int BLAU = 41;
+  sollZeit = sollZeit + LAUFZEIT;
+  colorFill(ROT, GRUEN, BLAU);
+  //
+  while (timeClient.getEpochTime() < sollZeit){
+    delay(1000);
+    timeClient.update();
+  }
+  timeClient.update();
+  double i = ABKLINGZEIT / HELLIGKEIT;
+  int j = 1;
+  long sollZeit = timeClient.getEpochTime();
+  sollZeit = sollZeit + ABKLINGZEIT;
+  while (timeClient.getEpochTime() < sollZeit){
+    delay(1000);
+    strip.setBrightness(HELLIGKEIT - (i*j));
+    j++;
+  }
+  strip.setBrightness(0);
+  timerRunning = false;
 }
+
+void colorFill(int r, int g, int b) {
+  for(int i=0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, strip.Color(r, g, b));
+      strip.show();
+  }
 
 /**
  * Prüft, ob der Timer noch läuft.
@@ -166,7 +195,7 @@ void setup() {
   strip.begin();
   strip.setBrightness(HELLIGKEIT);
   strip.show(); // Initialize all pixels to 'off'
-  int LAUFZEIT = 120;     // 120sec: 2 minutes
+  int LAUFZEIT = 120;     // 120sec: 2 minutes(Test), LAUFZEIT und ABKLINGZEIT addieren sich
   int ABKLINGZEIT = 20;
 
   // Sensoren und Status LED
@@ -178,9 +207,13 @@ void setup() {
 
 void loop() {
   
-   if(!digitalRead(BUTTON_BLACK_PIN)) {
+  if(!digitalRead(BUTTON_BLACK_PIN)) {
     startTimer();
   }
+
+  if(!digitalRead(BUTTON_RED_PIN)) {
+  }
+
 
    // Luftqualität
   float air_volt = readVoltage(GASSENSOR_PIN);
