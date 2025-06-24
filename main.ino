@@ -110,6 +110,14 @@ void colorFill(int r, int g, int b) {
       strip.show();
   }
 
+void showStatus(){
+      digitalWrite(LED_AIR_PIN,HIGH);
+      digitalWrite(LED_TEMP_PIN,HIGH);
+  delay(10000);
+      digitalWrite(LED_AIR_PIN,LOW);
+      digitalWrite(LED_TEMP_PIN,LOW);
+}
+
 /**
  * Prüft, ob der Timer noch läuft.
  * @return true, wenn weniger als 3600s seit Start vergangen sind.
@@ -212,6 +220,7 @@ void loop() {
   }
 
   if(!digitalRead(BUTTON_RED_PIN)) {
+    showStatus();
   }
 
 
