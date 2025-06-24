@@ -6,8 +6,8 @@
 // ---PINS---
 // LED Ring Parameter
 #define LED_PIN D5 // Make sure this PIN is right!
-#define BUTTON_RED_PIN D2 // Make sure this PIN is right!
-#define BUTTON_BLACK_PIN D1 // Make sure this PIN is right!
+#define BUTTON_RED_PIN D2 // Make sure this PIN is right! Starts measurement only
+#define BUTTON_BLACK_PIN D1 // Make sure this PIN is right! Starts measurement + LED ring
 #define STRIPSIZE 12
 
 #define GASSENSOR_PIN D7
@@ -197,12 +197,16 @@ void setup() {
   timeClient.begin();
   owm.setCity(cityName);
 
-  // LED Ring setup
+  // NeoPixel
   pinMode(BUTTON_RED_PIN, INPUT_PULLUP); // Initialize Red Button
   pinMode(BUTTON_BLACK_PIN, INPUT_PULLUP); // Initialize Black Button
+
+  // LED Ring setup
   strip.begin();
   strip.setBrightness(HELLIGKEIT);
   strip.show(); // Initialize all pixels to 'off'
+
+  // Timer
   int LAUFZEIT = 120;     // 120sec: 2 minutes(Test), LAUFZEIT und ABKLINGZEIT addieren sich
   int ABKLINGZEIT = 20;
 
@@ -214,11 +218,15 @@ void setup() {
 }
 
 void loop() {
-  
+
+  timeClient.update();
+
+  // Button: black -> start measurement timer + ring
   if(!digitalRead(BUTTON_BLACK_PIN)) {
     startTimer();
   }
 
+  // Button: red -> start measurement 
   if(!digitalRead(BUTTON_RED_PIN)) {
     showStatus();
   }
