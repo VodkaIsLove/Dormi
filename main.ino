@@ -186,6 +186,36 @@ float OptimalMinTemp() {
   return minTemp;
 }
 
+void startSensors(){
+    // Luftqualität
+  float air_volt = readVoltage(GASSENSOR_PIN);
+
+  if (air_volt < AirQ_OK) {
+    digitalWrite(LED_AIR_PIN,HIGH);
+  } else {
+    digitalWrite(LED_AIR_PIN,LOW);
+  }
+
+  // Temperatur
+  float temp1 = readTemp(TEMP1_PIN);
+  float temp2 = readTemp(TEMP2_PIN);
+
+  // calculate average temperature
+  float tempAvg = (temp1 + temp2) / 2.0;
+
+  // get Optimal Temperature intervall
+  float maxTemp = OptimalMaxTemp(); 
+  float minTemp = OptimalMinTemp(); 
+
+  // switch Status LED
+  if (tempAvg >= maxTemp && tempAvg <= minTemp) {
+    digitalWrite(LED_AIR_PIN,HIGH);
+  } else {
+    digitalWrite(LED_AIR_PIN,LOW);
+  }
+
+}
+
 
 void setup() {
   // WLAN-Verbindung
@@ -230,34 +260,6 @@ void loop() {
   // Button: red -> start measurement 
   if(!digitalRead(BUTTON_RED_PIN)) {
     showStatus();
-  }
-
-
-   // Luftqualität
-  float air_volt = readVoltage(GASSENSOR_PIN);
-
-  if (air_volt < AirQ_OK) {
-    digitalWrite(LED_AIR_PIN,HIGH);
-  } else {
-    digitalWrite(LED_AIR_PIN,LOW);
-  }
-
-  // Temperatur
-  float temp1 = readTemp(TEMP1_PIN);
-  float temp2 = readTemp(TEMP2_PIN);
-
-  // calculate average temperature
-  float tempAvg = (temp1 + temp2) / 2.0;
-
-  // get Optimal Temperature intervall
-  float maxTemp = OptimalMaxTemp(); 
-  float minTemp = OptimalMinTemp(); 
-
-  // switch Status LED
-  if (tempAvg >= maxTemp && tempAvg <= minTemp) {
-    digitalWrite(LED_AIR_PIN,HIGH);
-  } else {
-    digitalWrite(LED_AIR_PIN,LOW);
   }
 
   
