@@ -30,7 +30,9 @@ const float TEMP_MAX_OK = 20.0; // Obergrenze in Celsius
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIPSIZE, LED_PIN, NEO_GRB + NEO_KHZ800);
 int HELLIGKEIT = 20;
 
-
+bool ringActive = false;
+int LAUFZEIT = 120 //2 Minuten als Test
+int ABKLINGZEIT = 20; //Alle 20 sec anpassen
 
 // WLAN-Zugangsdaten
 const char* ssid     = "DEIN_SSID"; // HIER WLAN-SSID EINTRAGEN
@@ -156,7 +158,7 @@ float readTemp(int pin) {
 }
 
 float OptimalMaxTemp() {
-  float currTemp = getCurrentTemparture();
+  float currTemp = getCurrentTemperature();
   float maxTemp = 0;
   
   if(currTemp > 25){
@@ -172,7 +174,7 @@ float OptimalMaxTemp() {
 }
 
 float OptimalMinTemp() {
-  float currTemp = getCurrentTemparture();
+  float currTemp = getCurrentTemperature();
   float minTemp = 0;
   
  if(currTemp > 25){
@@ -237,10 +239,6 @@ void setup() {
   strip.setBrightness(HELLIGKEIT);
   strip.show(); // Initialize all pixels to 'off'
 
-  // Timer
-  int LAUFZEIT = 120;     // 120sec: 2 minutes(Test), LAUFZEIT und ABKLINGZEIT addieren sich
-  int ABKLINGZEIT = 20;
-
   // Sensoren und Status LED
   analogReadResolution(12);  // 12 Bit 0 bis 4095
   pinMode(LED_AIR_PIN, OUTPUT);
@@ -268,11 +266,10 @@ void loop() {
 
   // Button: black -> start measurement timer + ring
   if(!digitalRead(BUTTON_BLACK_PIN) && !timerRunning) {
-    timerStartEpoch = timeClient.getEpochTime();
-    timerRunning = true;
     ringActive = true;
     startSensors();
     delay(200);
+    startTimer();
   }
 
   // Button: red -> start measurement 
@@ -283,14 +280,6 @@ void loop() {
     startSensors();
     delay(200);
   }
-
-  if(timerRunning) {
-      if(ringActive) {
-      ringOperation();
-      startSensors();
-      ringActive = false;
-  }
-
   
   delay(2000);
 }
