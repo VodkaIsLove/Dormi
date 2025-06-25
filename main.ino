@@ -10,11 +10,11 @@
 #define BUTTON_BLACK_PIN D1 // Starts measurement + LED ring
 #define STRIPSIZE 12
 
-#define GASSENSOR_PIN D7
+#define GASSENSOR_PIN A0
 #define TEMP1_PIN D3
 #define TEMP2_PIN D4
 #define LED_AIR_PIN D6
-#define LED_TEMP_PIN D8
+#define LED_TEMP_PIN D7
 
 // Parameter 
 const float ADC_VOLT = 3.3;   // Board‑Versorgungsspannung
@@ -251,6 +251,20 @@ void setup() {
 void loop() {
 
   timeClient.update();
+
+  // Reset während Ausführung: Leerlauf-Zustand wiederherstellen //HIER
+  if (timerRunning && (!digitalRead(BUTTON_BLACK_PIN) || !digitalRead(BUTTON_RED_PIN))) {
+    timerRunning = false;
+    ringActive   = false;
+    strip.clear();
+    strip.show();
+    // LEDs zurücksetzen
+    digitalWrite(LED_AIR_PIN, LOW);
+    digitalWrite(LED_TEMP_PIN, LOW);
+    // warte Entprellung
+    delay(200);
+    return; // zurück in Leerlauf
+  }
 
   // Button: black -> start measurement timer + ring
   if(!digitalRead(BUTTON_BLACK_PIN) && !timerRunning) {
