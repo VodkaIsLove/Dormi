@@ -253,13 +253,28 @@ void loop() {
   timeClient.update();
 
   // Button: black -> start measurement timer + ring
-  if(!digitalRead(BUTTON_BLACK_PIN)) {
-    startTimer();
+  if(!digitalRead(BUTTON_BLACK_PIN) && !timerRunning) {
+    timerStartEpoch = timeClient.getEpochTime();
+    timerRunning = true;
+    ringActive = true;
+    startSensors();
+    delay(200);
   }
 
   // Button: red -> start measurement 
-  if(!digitalRead(BUTTON_RED_PIN)) {
-    showStatus();
+  if(!digitalRead(BUTTON_RED_PIN) && !timerRunning) {
+    timerStartEpoch = timeClient.getEpochTime();
+    timerRunning = true;
+    ringActive = false;
+    startSensors();
+    delay(200);
+  }
+
+  if(timerRunning) {
+      if(ringActive) {
+      ringOperation();
+      startSensors();
+      ringActive = false;
   }
 
   
