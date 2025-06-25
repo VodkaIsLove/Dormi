@@ -109,6 +109,7 @@ void colorFill(int r, int g, int b) {
       strip.setPixelColor(i, strip.Color(r, g, b));
       strip.show();
   }
+}
 
 void showStatus(){
       digitalWrite(LED_AIR_PIN,HIGH);
@@ -154,7 +155,7 @@ float readTemp(int pin) {
   return temperatureC;
 }
 
-float calculateOptimalMaxTemp() {
+float OptimalMaxTemp() {
   float currTemp = getCurrentTemparture();
   float maxTemp = 0;
   
@@ -170,7 +171,7 @@ float calculateOptimalMaxTemp() {
 
 }
 
-float calculateOptimalMinTemp() {
+float OptimalMinTemp() {
   float currTemp = getCurrentTemparture();
   float minTemp = 0;
   
@@ -249,8 +250,8 @@ void loop() {
   float tempAvg = (temp1 + temp2) / 2.0;
 
   // get Optimal Temperature intervall
-  float maxTemp = calculateOptimalMaxTemp(); 
-  float minTemp = calculateOptimalMinTemp(); 
+  float maxTemp = OptimalMaxTemp(); 
+  float minTemp = OptimalMinTemp(); 
 
   // switch Status LED
   if (tempAvg >= maxTemp && tempAvg <= minTemp) {
