@@ -18,7 +18,7 @@
 
 // Parameter 
 const float ADC_VOLT = 3.3;   // Board‑Versorgungsspannung
-const int   ADC_MAX = 4095;  // 12‑Bit Auflösung
+const int   ADC_MAX = 1023;  // 10‑Bit Auflösung
 
 const float AirQ_OK = 1.00; // < 1.0 V = gute Luft
 
