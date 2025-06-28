@@ -2,6 +2,7 @@
 #include <OpenWeather.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
+#include <Adafruit_Neopixel.h>
 
 // ---PINS---
 // LED Ring Parameter
@@ -31,7 +32,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIPSIZE, LED_PIN, NEO_GRB + NEO_KH
 int HELLIGKEIT = 20;
 
 bool ringActive = false;
-int LAUFZEIT = 120 //2 Minuten als Test
+int LAUFZEIT = 120; //2 Minuten als Test
 int ABKLINGZEIT = 20; //Alle 20 sec anpassen
 
 // WLAN-Zugangsdaten
