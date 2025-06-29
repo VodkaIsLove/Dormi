@@ -1,8 +1,9 @@
 #include <ESP8266WiFi.h>
-#include <OpenWeather.h>
+#include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
-#include <Adafruit_Neopixel.h>
+#include <Adafruit_NeoPixel.h>
+#include <ArduinoJson.h>
 
 // ---PINS---
 // LED Ring Parameter
@@ -41,14 +42,12 @@ const char* password = "DEIN_WIFI_PASSWORT"; // HIER  WLAN-PASSWORT EINTRAGEN
 
 
 // OpenWeatherMap API
-#define OWM_API_KEY "DEIN_API_KEY" // HIER  OPENWEATHERMAP API-SCHLÜSSEL EINTRAGEN
+const char* owm_api_key = "DEIN_API_KEY"; // HIER  OPENWEATHERMAP API-SCHLÜSSEL EINTRAGEN
 
 
 // Standort (Stadtname)
 const char* cityName = "Oldenburg,de"; // HIER STADTNAME EINTRAGEN (z.B. "Berlin,de")
 
-// OpenWeather Client
-OpenWeatherClient owm(OWM_API_KEY);
 
 // NTP Client für Timer
 WiFiUDP ntpUDP;
@@ -66,11 +65,22 @@ bool timerRunning = false;
  * @return Temperatur in °C oder NAN bei Fehler.
  */
 float getCurrentTemperature() {
-  WeatherData data = owm.getCurrentWeather();
-  if (data.isValid()) {
-    return data.temperature;
+  if (WiFi.status() != WL_CONNECTED) return NAN;
+  HTTPClient http;
+  String url = String("http://api.openweathermap.org/data/2.5/weather?q=") + cityName + "&units=metric&appid=" + owm_api_key;
+  http.begin(url);
+  int httpCode = http.GET();
+  float temp = NAN;
+  if (httpCode == HTTP_CODE_OK) {
+    String payload = http.getString();
+    StaticJsonDocument<512> doc;
+    auto error = deserializeJson(doc, payload);
+    if (!error) {
+      temp = doc["main"]["temp"].as<float>();
+    }
   }
-  return NAN;
+  http.end();
+  return temp;
 }
 
 // Timer-Funktionen
