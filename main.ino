@@ -106,8 +106,7 @@ void startTimer() {
   timeClient.update();
   double i = ABKLINGZEIT / HELLIGKEIT;
   int j = 1;
-  long sollZeit = timeClient.getEpochTime();
-  sollZeit = sollZeit + ABKLINGZEIT;
+  sollZeit = timeClient.getEpochTime() + ABKLINGZEIT;
   while (timeClient.getEpochTime() < sollZeit){
     delay(1000);
     strip.setBrightness(HELLIGKEIT - (i*j));
