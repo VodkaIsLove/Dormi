@@ -7,9 +7,9 @@
 
 // ---PINS---
 // LED Ring Parameter
-#define LED_PIN D5 
-#define BUTTON_RED_PIN D2 //  Starts measurement only
-#define BUTTON_BLACK_PIN D1 // Starts measurement + LED ring
+#define LED_PIN D8 
+#define BUTTON_RED_PIN D1 //  Starts measurement only
+#define BUTTON_BLACK_PIN D2 // Starts measurement + LED ring
 #define STRIPSIZE 12
 
 #define GASSENSOR_PIN A0
