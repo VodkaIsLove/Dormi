@@ -1,4 +1,4 @@
-#include <ESP8266WiFi.h>
+ß#include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
@@ -249,8 +249,7 @@ void setup() {
   strip.setBrightness(HELLIGKEIT);
   strip.show(); // Initialize all pixels to 'off'
 
-  // Sensoren und Status LED
-  analogReadResolution(12);  // 12 Bit 0 bis 4095
+  // Sensoren und Status
   pinMode(LED_AIR_PIN, OUTPUT);
   pinMode(LED_TEMP_PIN, OUTPUT);
 
