@@ -91,7 +91,7 @@ void startTimer() {
 
   strip.setBrightness(0);
   strip.show();
-  timerRunning = false;
+  // timerRunning = false;
 }
 
 void colorFill(int r, int g, int b) {
@@ -145,8 +145,6 @@ void startSensors(){
   // Temperatur
   float temp1 = readTemp(TEMP1_PIN);
   float temp2 = readTemp(TEMP2_PIN);
-    
-    
 
   // calculate average temperature
   float tempAvg = (temp1 + temp2) / 2.0;
@@ -161,6 +159,14 @@ void startSensors(){
   } else {
     digitalWrite(LED_TEMP_PIN,LOW);
   }
+
+  Serial.begin(115200);
+  // then inside startSensors():
+  Serial.print("Air voltage: ");
+  Serial.println(air_volt);
+  Serial.print("Temp1: "); Serial.print(temp1);
+  Serial.print(" Temp2: "); Serial.print(temp2);
+  Serial.print(" Avg: "); Serial.println(tempAvg);
 
 }
 
@@ -178,28 +184,82 @@ void setup() {
   // Sensoren und Status LED
   pinMode(LED_AIR_PIN, OUTPUT);
   pinMode(LED_TEMP_PIN, OUTPUT);
+  pinMode(TEMP2_PIN, INPUT);
+
+
+  digitalWrite(LED_AIR_PIN,HIGH);
+  digitalWrite(LED_TEMP_PIN,HIGH);
 
 }
+unsigned long abklingStartMillis = 0;
+bool abklingRunning = false;
 
 // ---------- LOOP ----------
 void loop() {
+
+  // Prozess abbruch
   if (timerRunning && (!digitalRead(BUTTON_BLACK_PIN) || !digitalRead(BUTTON_RED_PIN))) {
+    Serial.println("Abbruch durch Knopf - LEDs aus.");
     timerRunning = false;
     ringActive   = false;
     strip.clear();
     strip.show();
-    digitalWrite(LED_AIR_PIN, LOW);
-    digitalWrite(LED_TEMP_PIN, LOW);
-    delay(200);
+    digitalWrite(LED_AIR_PIN, HIGH);
+    digitalWrite(LED_TEMP_PIN, HIGH);
     return;
   }
 
+  //senoren lesen werte während der timer läuft
+  
+  if (timerRunning) {
+    delay(800);
+    startSensors();
+    unsigned long elapsed = millis() - timerStartMillis;
+
+    if (!abklingRunning) {
+      if (elapsed < LAUFZEIT * 1000) {
+        // LED Ring an, volle Helligkeit
+        colorFill(255,147,41);
+        strip.setBrightness(HELLIGKEIT);
+        strip.show();
+      } else {
+        // Start Abklingen
+        abklingStartMillis = millis();
+        abklingRunning = true;
+      }
+    } else {
+      // Abklingzeit läuft
+      unsigned long abklingElapsed = millis() - abklingStartMillis;
+
+      if (abklingElapsed < ABKLINGZEIT * 1000) {
+        // Helligkeit reduzieren
+        float fraction = 1.0 - (float)abklingElapsed / (ABKLINGZEIT * 1000);
+        int newBrightness = (int)(HELLIGKEIT * fraction);
+        strip.setBrightness(newBrightness);
+        strip.show();
+      } else {
+        // Abklingzeit vorbei, LEDs ausschalten
+        strip.setBrightness(0);
+        strip.clear();
+        strip.show();
+        timerRunning = false;
+        abklingRunning = false;
+        // Status LEDs ausschalten 
+        digitalWrite(LED_AIR_PIN, HIGH);
+        digitalWrite(LED_TEMP_PIN, HIGH);
+        unsigned long abklingStartMillis = 0;
+      }
+    }
+  }
+
+
 
   if (!digitalRead(BUTTON_BLACK_PIN) && !timerRunning) {
+    timerStartMillis = millis();
     ringActive = true;
+    timerRunning = true;
     startSensors();
-    delay(200);
-    startTimer();
+    // startTimer();
   }
 
   if (!digitalRead(BUTTON_RED_PIN) && !timerRunning) {
@@ -207,8 +267,8 @@ void loop() {
     timerRunning = true;
     ringActive = false;
     startSensors();
-    delay(200);
+    
   }
 
-  delay(200);
+  
 }
