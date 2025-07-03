@@ -7,45 +7,44 @@
 
 // ---PINS---
 // LED Ring Parameter
-#define LED_PIN D8 
-#define BUTTON_RED_PIN D1 //  Starts measurement only
-#define BUTTON_BLACK_PIN D2 // Starts measurement + LED ring
+#define LED_PIN D8
+#define BUTTON_RED_PIN D1    //  Starts measurement only
+#define BUTTON_BLACK_PIN D2  // Starts measurement + LED ring
 #define STRIPSIZE 12
 
 #define GASSENSOR_PIN A0
-#define TEMP1_PIN D3
-#define TEMP2_PIN D4
+#define TEMP_PIN D3
 #define LED_AIR_PIN D6
 #define LED_TEMP_PIN D7
 
-// Parameter 
-const float ADC_VOLT = 3.3;   // Board‑Versorgungsspannung
-const int   ADC_MAX = 1023;  // 10‑Bit Auflösung
+// Parameter
+const float ADC_VOLT = 3.3;  // Board‑Versorgungsspannung
+const int ADC_MAX = 1023;    // 10‑Bit Auflösung
 
-const float AirQ_OK = 1.00; // < 1.0 V = gute Luft
+const float AirQ_OK = 1.00;  // < 1.0 V = gute Luft
 
-const float TEMP_MIN_OK = 16.0; // Untergrenze in Celsius
-const float TEMP_MAX_OK = 20.0; // Obergrenze in Celsius
+const float TEMP_MIN_OK = 16.0;  // Untergrenze in Celsius
+const float TEMP_MAX_OK = 20.0;  // Obergrenze in Celsius
 
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIPSIZE, LED_PIN, NEO_GRB + NEO_KHZ800);
 int HELLIGKEIT = 20;
 
 bool ringActive = false;
-int LAUFZEIT = 120; //2 Minuten als Test
-int ABKLINGZEIT = 20; //Alle 20 sec anpassen
+int LAUFZEIT = 120;    //2 Minuten als Test
+int ABKLINGZEIT = 20;  //Alle 20 sec anpassen
 
 // WLAN-Zugangsdaten
-const char* ssid     = "DEIN_SSID"; // HIER WLAN-SSID EINTRAGEN
-const char* password = "DEIN_WIFI_PASSWORT"; // HIER  WLAN-PASSWORT EINTRAGEN
+const char* ssid = "DEIN_SSID";               // HIER WLAN-SSID EINTRAGEN
+const char* password = "DEIN_WIFI_PASSWORT";  // HIER  WLAN-PASSWORT EINTRAGEN
 
 
 // OpenWeatherMap API
-const char* owm_api_key = "DEIN_API_KEY"; // HIER  OPENWEATHERMAP API-SCHLÜSSEL EINTRAGEN
+const char* owm_api_key = "DEIN_API_KEY";  // HIER  OPENWEATHERMAP API-SCHLÜSSEL EINTRAGEN
 
 
 // Standort (Stadtname)
-const char* cityName = "Oldenburg,de"; // HIER STADTNAME EINTRAGEN (z.B. "Berlin,de")
+const char* cityName = "Oldenburg,de";  // HIER STADTNAME EINTRAGEN (z.B. "Berlin,de")
 
 
 // --NTP Client für Timer--
@@ -81,9 +80,9 @@ void startTimer() {
   double i = (float)ABKLINGZEIT / HELLIGKEIT;
   int j = 1;
   unsigned long abklingEnde = millis() + (ABKLINGZEIT * 1000);
-  while (millis() < abklingEnde){
+  while (millis() < abklingEnde) {
     delay(1000);
-    int newBrightness = max(0,HELLIGKEIT - static_cast<int>(i * j));
+    int newBrightness = max(0, HELLIGKEIT - static_cast<int>(i * j));
     strip.setBrightness(newBrightness);
     strip.show();
     j++;
@@ -95,15 +94,15 @@ void startTimer() {
 }
 
 void colorFill(int r, int g, int b) {
-  for(int i=0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(i, strip.Color(r, g, b));
-      strip.show();
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(r, g, b));
+    strip.show();
   }
 }
 
 bool isTimerActive() {
   if (!timerRunning) return false;
-  return (millis() - timerStartMillis) < 3600000UL; // 1h = 3600000 ms
+  return (millis() - timerStartMillis) < 3600000UL;  // 1h = 3600000 ms
 }
 
 /**
@@ -119,77 +118,69 @@ unsigned long getTimerRemaining() {
 }
 // Sensoren
 float readVoltage(int pin) {
-  int raw = analogRead(pin); // wert zwischen 0-4095
-  return raw * ADC_VOLT / ADC_MAX ; // in Volt
+  int raw = analogRead(pin);        // wert zwischen 0-4095
+  return raw * ADC_VOLT / ADC_MAX;  // in Volt
 }
 
 float readTemp(int pin) {
   int raw = analogRead(pin);
-  float voltage = raw * ADC_VOLT/ADC_MAX;
-  float temperatureC = voltage / 0.01; // 10mV pro Celsius
+  float voltage = raw * ADC_VOLT / ADC_MAX;
+  float temperatureC = voltage / 0.01;  // 10mV pro Celsius
   return temperatureC;
 }
 
 
 
-void startSensors(){
-    // Luftqualität
+void startSensors() {
+  // Luftqualität
   float air_volt = readVoltage(GASSENSOR_PIN);
 
   if (air_volt < AirQ_OK) {
-    digitalWrite(LED_AIR_PIN,HIGH);
+    digitalWrite(LED_AIR_PIN, HIGH);
   } else {
-    digitalWrite(LED_AIR_PIN,LOW);
+    digitalWrite(LED_AIR_PIN, LOW);
   }
 
   // Temperatur
-  float temp1 = readTemp(TEMP1_PIN);
-  float temp2 = readTemp(TEMP2_PIN);
-
-  // calculate average temperature
-  float tempAvg = (temp1 + temp2) / 2.0;
+  float temp = readTemp(TEMP_PIN);
 
   // get Optimal Temperature intervall
   float maxTemp = TEMP_MAX_OK;
   float minTemp = TEMP_MIN_OK;
 
   // switch Status LED
-  if (tempAvg >= minTemp && tempAvg <= maxTemp) {
-    digitalWrite(LED_TEMP_PIN,HIGH);
+  if (temp >= minTemp && temp <= maxTemp) {
+    digitalWrite(LED_TEMP_PIN, HIGH);
   } else {
-    digitalWrite(LED_TEMP_PIN,LOW);
+    digitalWrite(LED_TEMP_PIN, LOW);
   }
 
   Serial.begin(115200);
   // then inside startSensors():
   Serial.print("Air voltage: ");
   Serial.println(air_volt);
-  Serial.print("Temp1: "); Serial.print(temp1);
-  Serial.print(" Temp2: "); Serial.print(temp2);
-  Serial.print(" Avg: "); Serial.println(tempAvg);
-
+  Serial.print("Temp: ");
+  Serial.print(temp);
 }
 
 // ---------- SETUP ----------
 void setup() {
   // NeoPixel
-  pinMode(BUTTON_RED_PIN, INPUT_PULLUP); // Initialize Red Button
-  pinMode(BUTTON_BLACK_PIN, INPUT_PULLUP); // Initialize Black Button
+  pinMode(BUTTON_RED_PIN, INPUT_PULLUP);    // Initialize Red Button
+  pinMode(BUTTON_BLACK_PIN, INPUT_PULLUP);  // Initialize Black Button
 
   // LED Ring setup
   strip.begin();
   strip.setBrightness(HELLIGKEIT);
-  strip.show(); // Initialize all pixels to 'off'
+  strip.show();  // Initialize all pixels to 'off'
 
   // Sensoren und Status LED
   pinMode(LED_AIR_PIN, OUTPUT);
   pinMode(LED_TEMP_PIN, OUTPUT);
-  pinMode(TEMP2_PIN, INPUT);
 
 
-  digitalWrite(LED_AIR_PIN,HIGH);
-  digitalWrite(LED_TEMP_PIN,HIGH);
-
+  digitalWrite(LED_AIR_PIN, HIGH);
+  digitalWrite(LED_TEMP_PIN, HIGH);
 }
 unsigned long abklingStartMillis = 0;
 bool abklingRunning = false;
@@ -201,7 +192,7 @@ void loop() {
   if (timerRunning && (!digitalRead(BUTTON_BLACK_PIN) || !digitalRead(BUTTON_RED_PIN))) {
     Serial.println("Abbruch durch Knopf - LEDs aus.");
     timerRunning = false;
-    ringActive   = false;
+    ringActive = false;
     strip.clear();
     strip.show();
     digitalWrite(LED_AIR_PIN, HIGH);
@@ -210,7 +201,7 @@ void loop() {
   }
 
   //senoren lesen werte während der timer läuft
-  
+
   if (timerRunning) {
     delay(800);
     startSensors();
@@ -219,7 +210,7 @@ void loop() {
     if (!abklingRunning) {
       if (elapsed < LAUFZEIT * 1000) {
         // LED Ring an, volle Helligkeit
-        colorFill(255,147,41);
+        colorFill(255, 147, 41);
         strip.setBrightness(HELLIGKEIT);
         strip.show();
       } else {
@@ -244,7 +235,7 @@ void loop() {
         strip.show();
         timerRunning = false;
         abklingRunning = false;
-        // Status LEDs ausschalten 
+        // Status LEDs ausschalten
         digitalWrite(LED_AIR_PIN, HIGH);
         digitalWrite(LED_TEMP_PIN, HIGH);
         unsigned long abklingStartMillis = 0;
@@ -267,8 +258,5 @@ void loop() {
     timerRunning = true;
     ringActive = false;
     startSensors();
-    
   }
-
-  
 }
