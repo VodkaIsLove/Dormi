@@ -21,10 +21,10 @@
 const float ADC_VOLT = 3.3;  // Board‑Versorgungsspannung
 const int ADC_MAX = 1023;    // 10‑Bit Auflösung
 
-const float AirQ_OK = 1.00;  // < 1.0 V = gute Luft
+const float AirQ_OK = 1.80;  // < 1.0 V = gute Luft
 
 const float TEMP_MIN_OK = 16.0;  // Untergrenze in Celsius
-const float TEMP_MAX_OK = 20.0;  // Obergrenze in Celsius
+const float TEMP_MAX_OK = 21.0;  // Obergrenze in Celsius
 
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIPSIZE, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -126,8 +126,8 @@ float readVoltage(int pin) {
 
 float readTemp(int pin) {
   int raw = analogRead(pin);
-  float voltage = raw * ADC_VOLT / ADC_MAX;
-  float temperatureC = voltage / 0.01;  // 10mV pro Celsius
+  float voltage = raw * 1.0 / ADC_MAX;
+  float temperatureC = (voltage / 0.01) - 26;  // 10mV pro Celsius
   return temperatureC;
 }
 
@@ -157,8 +157,8 @@ void startSensors() {
     digitalWrite(LED_TEMP_PIN, LOW);
   }
 
+  // zeigt aktuelle werte an
   Serial.begin(115200);
-  // then inside startSensors():
   Serial.print(" Air voltage:  ");
   Serial.println(air_volt);
   Serial.print(" Temp: ");
