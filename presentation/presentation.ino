@@ -107,6 +107,31 @@ void startSensors() {
   Serial.println(temp);
 }
 
+  const unsigned long DEBOUNCE_DELAY = 50;  // ms
+  unsigned long lastDebounceTimeRed   = 0;
+  unsigned long lastDebounceTimeBlack = 0;
+  bool lastButtonStateRed   = HIGH;
+  bool lastButtonStateBlack = HIGH;
+  bool stableButtonStateRed   = HIGH;
+  bool stableButtonStateBlack = HIGH;
+
+  bool readButtonDebounced(int pin, bool &lastStableState, bool &lastRawState, unsigned long &lastTime) {
+  bool raw = digitalRead(pin);
+  if (raw != lastRawState) {
+    // Wechsel registriert: starte neuen Timer
+    lastTime = millis();
+    lastRawState = raw;
+  }
+  // Wenn seit dem letzten Wechsel genug Zeit vergangen ist ...
+  if (millis() - lastTime > DEBOUNCE_DELAY) {
+    // ... und der Zustand hat sich seit der letzten Stabilisierung geändert:
+    if (raw != lastStableState) {
+      lastStableState = raw;
+      return true;  // nur beim wirklichen Zustandswechsel liefern wir „true“
+    }
+  }
+  return false;
+}
 // ---------- SETUP ----------
 void setup() {
   // NeoPixel
@@ -125,7 +150,11 @@ void setup() {
 
   digitalWrite(LED_AIR_PIN, HIGH);
   digitalWrite(LED_TEMP_PIN, HIGH);
+  
+ 
+ 
 }
+
 
 
 unsigned long abklingStartMillis = 0;
@@ -147,12 +176,21 @@ void resetToStandby() {
 
   // Optional: Serielle Ausgabe zur Kontrolle
   Serial.println(">>> RESET: zurück in Bereitschaft");
+
+  
 }
+
+bool wasRedPressed = false;
+bool wasBlackPressed = false;
 // ---------- LOOP ----------
 void loop() {
 
-  bool redPressed   = (digitalRead(BUTTON_RED_PIN)   == LOW);
-  bool blackPressed = (digitalRead(BUTTON_BLACK_PIN) == LOW);
+ bool redChanged   = readButtonDebounced(BUTTON_RED_PIN,   stableButtonStateRed,   lastButtonStateRed,   lastDebounceTimeRed);
+  bool blackChanged = readButtonDebounced(BUTTON_BLACK_PIN, stableButtonStateBlack, lastButtonStateBlack, lastDebounceTimeBlack);
+
+  // Wenn gedrückt und es ist wirklich ein Wechsel zum LOW-Zustand:
+  bool redPressed   = (stableButtonStateRed   == LOW) && redChanged;
+  bool blackPressed = (stableButtonStateBlack == LOW) && blackChanged;
 
     // Reset während Ausführung: Leerlauf-Zustand wiederherstellen //HIER
  if (timerRunning && (redPressed || blackPressed)) {
@@ -160,17 +198,15 @@ void loop() {
     return;  // sofort raus aus loop(), bis zum nächsten Durchlauf
   }
 
-
-
   //senoren lesen werte während der timer läuft
     if (timerRunning) {
-      delay(800);
+      delay(200);
       startSensors();
       unsigned long elapsed = millis() - timerStartMillis;
 
       if(!ringActive) {
         if (timerRunning) {
-        delay(800);
+        delay(200);
         startSensors();
         unsigned long elapsed = millis() - timerStartMillis;
 
@@ -235,7 +271,7 @@ void loop() {
   }
 
 
-  if (!digitalRead(BUTTON_BLACK_PIN) && !timerRunning) {
+  if (blackPressed && !wasBlackPressed && !timerRunning) {
     timerStartMillis = millis();
     ringActive = true;
     timerRunning = true;
@@ -244,7 +280,7 @@ void loop() {
     // startTimer();
   }
 
-  if (!digitalRead(BUTTON_RED_PIN) && !timerRunning) {
+  if (redPressed && !wasRedPressed && !timerRunning) {
     timerStartMillis = millis();
     timerRunning = true;
     ringActive = false;
