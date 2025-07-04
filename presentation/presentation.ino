@@ -1,9 +1,5 @@
 #include <ESP8266WiFi.h>
-// #include <ESP8266HTTPClient.h>
-// #include <WiFiUdp.h>
-// #include <NTPClient.h>
 #include <Adafruit_NeoPixel.h>
-// #include <ArduinoJson.h>
 
 // ---PINS---
 // LED Ring Parameter
@@ -34,33 +30,12 @@ bool ringActive = false;
 int LAUFZEIT = 120;    //2 Minuten als Test
 int ABKLINGZEIT = 20;  //Alle 20 sec anpassen
 
-// WLAN-Zugangsdaten
-const char* ssid = "DEIN_SSID";               // HIER WLAN-SSID EINTRAGEN
-const char* password = "DEIN_WIFI_PASSWORT";  // HIER  WLAN-PASSWORT EINTRAGEN
-
-
-// OpenWeatherMap API
-const char* owm_api_key = "DEIN_API_KEY";  // HIER  OPENWEATHERMAP API-SCHLÜSSEL EINTRAGEN
-
-
-// Standort (Stadtname)
-const char* cityName = "Oldenburg,de";  // HIER STADTNAME EINTRAGEN (z.B. "Berlin,de")
-
-
-// --NTP Client für Timer--
-// WiFiUDP ntpUDP;
-// const long utcOffsetInSeconds = 3600;         // MEZ
-// NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
-
 // Timer-Variablen
 unsigned long timerStartMillis = 0;
 bool timerRunning = false;
 
 
 // Timer-Funktionen
-/**
- * Startet den 1-Stunden-Timer.
- */
 void startTimer() {
   timerStartMillis = millis();
   timerRunning = true;
@@ -127,7 +102,7 @@ float readVoltage(int pin) {
 float readTemp(int pin) {
   int raw = analogRead(pin);
   float voltage = raw * 1.0 / ADC_MAX;
-  float temperatureC = (voltage / 0.01) - 26;  // 10mV pro Celsius
+  float temperatureC = (voltage / 0.01);  // 10mV pro Celsius
   return temperatureC;
 }
 
@@ -162,7 +137,7 @@ void startSensors() {
   Serial.print(" Air voltage:  ");
   Serial.println(air_volt);
   Serial.print(" Temp: ");
-  Serial.print(temp);
+  Serial.println(temp);
 }
 
 // ---------- SETUP ----------
@@ -192,7 +167,6 @@ bool abklingRunning = false;
 void loop() {
 
   //senoren lesen werte während der timer läuft
-
     if (timerRunning) {
       delay(800);
       startSensors();
