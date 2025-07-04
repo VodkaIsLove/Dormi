@@ -22,7 +22,6 @@ const float AirQ_OK = 1.80;  // < 1.0 V = gute Luft
 const float TEMP_MIN_OK = 16.0;  // Untergrenze in Celsius
 const float TEMP_MAX_OK = 21.0;  // Obergrenze in Celsius
 
-
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIPSIZE, LED_PIN, NEO_GRB + NEO_KHZ800);
 int HELLIGKEIT = 20;
 
@@ -34,7 +33,43 @@ int ABKLINGZEIT = 20;  //Alle 20 sec anpassen
 unsigned long timerStartMillis = 0;
 bool timerRunning = false;
 
+// Button Variablen
+bool wasRedPressed = false;
+bool wasBlackPressed = false;
 
+const unsigned long DEBOUNCE_DELAY = 50;  // ms
+unsigned long lastDebounceTimeRed   = 0;
+unsigned long lastDebounceTimeBlack = 0;
+bool lastButtonStateRed   = HIGH;
+bool lastButtonStateBlack = HIGH;
+bool stableButtonStateRed   = HIGH;
+bool stableButtonStateBlack = HIGH;
+
+// Milis variablen für den loop
+unsigned long lastSensorReadMillis = 0;
+const unsigned long SENSOR_INTERVAL = 200;  
+
+unsigned long abklingStartMillis = 0;
+bool abklingRunning = false;
+
+
+bool readButtonDebounced(int pin, bool &lastStableState, bool &lastRawState, unsigned long &lastTime) {
+    bool raw = digitalRead(pin);
+    if (raw != lastRawState) {
+      // Wechsel registriert: starte neuen Timer
+      lastTime = millis();
+      lastRawState = raw;
+    }
+    // Wenn seit dem letzten Wechsel genug Zeit vergangen ist ...
+    if (millis() - lastTime > DEBOUNCE_DELAY) {
+      // ... und der Zustand hat sich seit der letzten Stabilisierung geändert:
+      if (raw != lastStableState) {
+        lastStableState = raw;
+        return true;  // nur beim wirklichen Zustandswechsel liefern wir „true“
+      }
+    }
+    return false;
+}
 
 
 void colorFill(int r, int g, int b) {
@@ -49,17 +84,6 @@ bool isTimerActive() {
   return (millis() - timerStartMillis) < 3600000UL;  // 1h = 3600000 ms
 }
 
-/**
- * Gibt die verbleibende Zeit in Sekunden zurück.
- * @return Restsekunden oder 0.
- */
-unsigned long getTimerRemaining() {
-  if (!timerRunning) return 0;
-  unsigned long elapsed = millis() - timerStartMillis;
-  if (elapsed < 3600000UL) return (3600000UL - elapsed) / 1000;
-  timerRunning = false;
-  return 0;
-}
 // Sensoren
 float readVoltage(int pin) {
   int raw = analogRead(pin);        // wert zwischen 0-4095
@@ -72,8 +96,6 @@ float readTemp(int pin) {
   float temperatureC = (voltage / 0.01);  // 10mV pro Celsius
   return temperatureC;
 }
-
-
 
 void startSensors() {
   // Luftqualität
@@ -107,59 +129,6 @@ void startSensors() {
   Serial.println(temp);
 }
 
-  const unsigned long DEBOUNCE_DELAY = 50;  // ms
-  unsigned long lastDebounceTimeRed   = 0;
-  unsigned long lastDebounceTimeBlack = 0;
-  bool lastButtonStateRed   = HIGH;
-  bool lastButtonStateBlack = HIGH;
-  bool stableButtonStateRed   = HIGH;
-  bool stableButtonStateBlack = HIGH;
-
-  bool readButtonDebounced(int pin, bool &lastStableState, bool &lastRawState, unsigned long &lastTime) {
-  bool raw = digitalRead(pin);
-  if (raw != lastRawState) {
-    // Wechsel registriert: starte neuen Timer
-    lastTime = millis();
-    lastRawState = raw;
-  }
-  // Wenn seit dem letzten Wechsel genug Zeit vergangen ist ...
-  if (millis() - lastTime > DEBOUNCE_DELAY) {
-    // ... und der Zustand hat sich seit der letzten Stabilisierung geändert:
-    if (raw != lastStableState) {
-      lastStableState = raw;
-      return true;  // nur beim wirklichen Zustandswechsel liefern wir „true“
-    }
-  }
-  return false;
-}
-// ---------- SETUP ----------
-void setup() {
-  // NeoPixel
-  pinMode(BUTTON_RED_PIN, INPUT_PULLUP);    // Initialize Red Button
-  pinMode(BUTTON_BLACK_PIN, INPUT_PULLUP);  // Initialize Black Button
-
-  // LED Ring setup
-  strip.begin();
-  strip.setBrightness(HELLIGKEIT);
-  strip.show();  // Initialize all pixels to 'off'
-
-  // Sensoren und Status LED
-  pinMode(LED_AIR_PIN, OUTPUT);
-  pinMode(LED_TEMP_PIN, OUTPUT);
-
-
-  digitalWrite(LED_AIR_PIN, HIGH);
-  digitalWrite(LED_TEMP_PIN, HIGH);
-  
- 
- 
-}
-
-
-
-unsigned long abklingStartMillis = 0;
-bool abklingRunning = false;
-
 void resetToStandby() {
   // Timer stoppen
   timerRunning   = false;
@@ -180,12 +149,30 @@ void resetToStandby() {
   
 }
 
-bool wasRedPressed = false;
-bool wasBlackPressed = false;
+// ---------- SETUP ----------
+void setup() {
+  // NeoPixel
+  pinMode(BUTTON_RED_PIN, INPUT_PULLUP);    // Initialize Red Button
+  pinMode(BUTTON_BLACK_PIN, INPUT_PULLUP);  // Initialize Black Button
+
+  // LED Ring setup
+  strip.begin();
+  strip.setBrightness(HELLIGKEIT);
+  strip.show();  // Initialize all pixels to 'off'
+
+  // Status LEDs zurücksetzen
+  pinMode(LED_AIR_PIN, OUTPUT);
+  pinMode(LED_TEMP_PIN, OUTPUT);
+
+  digitalWrite(LED_AIR_PIN, HIGH);
+  digitalWrite(LED_TEMP_PIN, HIGH);
+ 
+}
+
 // ---------- LOOP ----------
 void loop() {
 
- bool redChanged   = readButtonDebounced(BUTTON_RED_PIN,   stableButtonStateRed,   lastButtonStateRed,   lastDebounceTimeRed);
+  bool redChanged   = readButtonDebounced(BUTTON_RED_PIN,   stableButtonStateRed,   lastButtonStateRed,   lastDebounceTimeRed);
   bool blackChanged = readButtonDebounced(BUTTON_BLACK_PIN, stableButtonStateBlack, lastButtonStateBlack, lastDebounceTimeBlack);
 
   // Wenn gedrückt und es ist wirklich ein Wechsel zum LOW-Zustand:
@@ -198,78 +185,64 @@ void loop() {
     return;  // sofort raus aus loop(), bis zum nächsten Durchlauf
   }
 
-  //senoren lesen werte während der timer läuft
-    if (timerRunning) {
-      delay(200);
-      startSensors();
-      unsigned long elapsed = millis() - timerStartMillis;
 
-      if(!ringActive) {
-        if (timerRunning) {
-        delay(200);
-        startSensors();
-        unsigned long elapsed = millis() - timerStartMillis;
+ if (timerRunning) {
+  unsigned long currentMillis = millis();
+  unsigned long elapsed = currentMillis - timerStartMillis;
 
-        if (!abklingRunning) {
-          if (elapsed >= LAUFZEIT * 1000) {
-            // Start Abklingen
-            abklingStartMillis = millis();
-            abklingRunning = true;
-          }
-        } else {
-          // Abklingzeit läuft
-          unsigned long abklingElapsed = millis() - abklingStartMillis;
+  // Sensorwerte alle 200ms abfragen (nicht-blockierend)
+  if (currentMillis - lastSensorReadMillis >= SENSOR_INTERVAL) {
+    lastSensorReadMillis = currentMillis;
+    startSensors();
+  }
 
-          if (abklingElapsed >= ABKLINGZEIT * 1000) {
-            // Abklingzeit vorbei, Timer beenden
-            timerRunning = false;
-            abklingRunning = false;
-
-            // Status-LEDs ausschalten
-            digitalWrite(LED_AIR_PIN, HIGH);
-            digitalWrite(LED_TEMP_PIN, HIGH);
-          }
+    if (!ringActive) {
+      if (!abklingRunning) {
+        if (elapsed >= LAUFZEIT * 1000) {
+          // Start Abklingen
+          abklingStartMillis = currentMillis;
+          abklingRunning = true;
+        }
+      } else {
+        unsigned long abklingElapsed = currentMillis - abklingStartMillis;
+        if (abklingElapsed >= ABKLINGZEIT * 1000) {
+          // Timer beenden
+          timerRunning = false;
+          abklingRunning = false;
+          digitalWrite(LED_AIR_PIN, HIGH);
+          digitalWrite(LED_TEMP_PIN, HIGH);
         }
       }
-      } else {
-    
+    } else {
       if (!abklingRunning) {
         if (elapsed < LAUFZEIT * 1000) {
-          // LED Ring an, volle Helligkeit
           colorFill(255, 147, 41);
           strip.setBrightness(HELLIGKEIT);
           strip.show();
         } else {
-          // Start Abklingen
-          abklingStartMillis = millis();
+          abklingStartMillis = currentMillis;
           abklingRunning = true;
         }
       } else {
-        // Abklingzeit läuft
-        unsigned long abklingElapsed = millis() - abklingStartMillis;
-
+        unsigned long abklingElapsed = currentMillis - abklingStartMillis;
         if (abklingElapsed < ABKLINGZEIT * 1000) {
-          // Helligkeit reduzieren
           float fraction = 1.0 - (float)abklingElapsed / (ABKLINGZEIT * 1000);
           int newBrightness = (int)(HELLIGKEIT * fraction);
           strip.setBrightness(newBrightness);
           strip.show();
         } else {
-          // Abklingzeit vorbei, LEDs ausschalten
           strip.setBrightness(0);
           strip.clear();
           strip.show();
           timerRunning = false;
           abklingRunning = false;
-          // Status LEDs ausschalten
           digitalWrite(LED_AIR_PIN, HIGH);
           digitalWrite(LED_TEMP_PIN, HIGH);
-          unsigned long abklingStartMillis = 0;
+          abklingStartMillis = 0;
         }
       }
     }
   }
-
 
   if (blackPressed && !wasBlackPressed && !timerRunning) {
     timerStartMillis = millis();
