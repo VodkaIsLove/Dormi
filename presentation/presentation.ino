@@ -35,40 +35,7 @@ unsigned long timerStartMillis = 0;
 bool timerRunning = false;
 
 
-// Timer-Funktionen
-void startTimer() {
-  timerStartMillis = millis();
-  timerRunning = true;
 
-  long sollZeitMillis = millis() + (LAUFZEIT * 1000);
-  int ROT = 255;
-  int GRUEN = 147;
-  int BLAU = 41;
-  colorFill(ROT, GRUEN, BLAU);
-
-  // Warte, bis Sollzeit erreicht
-  while (millis() < sollZeitMillis) {
-    delay(1000);
-    startSensors();
-  }
-
-  // Abklingzeit
-  double i = (float)ABKLINGZEIT / HELLIGKEIT;
-  int j = 1;
-  unsigned long abklingEnde = millis() + (ABKLINGZEIT * 1000);
-  while (millis() < abklingEnde) {
-    delay(1000);
-    startSensors();
-    int newBrightness = max(0, HELLIGKEIT - static_cast<int>(i * j));
-    strip.setBrightness(newBrightness);
-    strip.show();
-    j++;
-  }
-
-  strip.setBrightness(0);
-  strip.show();
-  timerRunning = false;
-}
 
 void colorFill(int r, int g, int b) {
   for (int i = 0; i < strip.numPixels(); i++) {
@@ -160,11 +127,40 @@ void setup() {
   digitalWrite(LED_TEMP_PIN, HIGH);
 }
 
+
 unsigned long abklingStartMillis = 0;
 bool abklingRunning = false;
 
+void resetToStandby() {
+  // Timer stoppen
+  timerRunning   = false;
+  abklingRunning = false;
+  ringActive     = false;
+
+  // NeoPixel ausschalten
+  strip.clear();
+  strip.show();
+
+  // Status‑LEDs wieder auf „Bereitschaft“ (z. B. HIGH = eingebauter LED‑Pullup)
+  digitalWrite(LED_AIR_PIN,  HIGH);
+  digitalWrite(LED_TEMP_PIN, HIGH);
+
+  // Optional: Serielle Ausgabe zur Kontrolle
+  Serial.println(">>> RESET: zurück in Bereitschaft");
+}
 // ---------- LOOP ----------
 void loop() {
+
+  bool redPressed   = (digitalRead(BUTTON_RED_PIN)   == LOW);
+  bool blackPressed = (digitalRead(BUTTON_BLACK_PIN) == LOW);
+
+    // Reset während Ausführung: Leerlauf-Zustand wiederherstellen //HIER
+ if (timerRunning && (redPressed || blackPressed)) {
+    resetToStandby();
+    return;  // sofort raus aus loop(), bis zum nächsten Durchlauf
+  }
+
+
 
   //senoren lesen werte während der timer läuft
     if (timerRunning) {
