@@ -45,8 +45,9 @@ const char* password = "DEIN_WIFI_PASSWORT"; // HIER  WLAN-PASSWORT EINTRAGEN
 const char* owm_api_key = "DEIN_API_KEY"; // HIER  OPENWEATHERMAP API-SCHLÜSSEL EINTRAGEN
 
 
-// Standort (Stadtname)
-const char* cityName = "Oldenburg,de"; // HIER STADTNAME EINTRAGEN (z.B. "Berlin,de")
+// Standort (Längen und Breitengrad angeben)
+String lat = ""; // HIER LÄNGENGRAD EINTRAGEN (Bsp 53.14391293845085)
+String lon = ""; // HIER BREITENGRAD EINTRAGEN (Bsp 8.212322011010974)
 
 
 // NTP Client für Timer
@@ -62,13 +63,12 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 float getCurrentTemperature() {
   if (WiFi.status() != WL_CONNECTED) return NAN;
   HTTPClient http;
-  String url = String("http://api.openweathermap.org/data/2.5/weather?q=") + cityName + "&units=metric&appid=" + owm_api_key;
-  http.begin(url);
+  http.begin("http://api.openweathermap.org/data/2.5/weather?") + "lat=" + lat + "&lon=" + lon  "&units=metric&appid=" + owm_api_key);
   int httpCode = http.GET();
   float temp = NAN;
-  if (httpCode == HTTP_CODE_OK) {
+  if (httpCode > 0) {
     String payload = http.getString();
-    StaticJsonDocument<512> doc;
+    DynamicJsonDocument doc(2048);
     auto error = deserializeJson(doc, payload);
     if (!error) {
       temp = doc["main"]["temp"].as<float>();
