@@ -62,12 +62,13 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
  */
 float getCurrentTemperature() {
   if (WiFi.status() != WL_CONNECTED) return NAN;
+  WiFiClient client;
   HTTPClient http;
   String url = "http://api.openweathermap.org/data/2.5/weather?";
   url += "lat=" + String(lat);
   url += "&lon=" + String(lon);
   url += "&units=metric&appid=" + String(owm_api_key);
-  http.begin(url);
+  http.begin(client, url);
   int httpCode = http.GET();
   float temp = NAN;
   if (httpCode > 0) {
